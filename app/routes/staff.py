@@ -1,4 +1,5 @@
 # app/routes/staff.py — Staff-facing routes (prefix /staff)
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -76,5 +77,27 @@ async def update_status(
     staff: StaffUser = Depends(require_staff),
     session: Session = Depends(get_session),
 ):
-    # TODO: Update request status, add RequestActivity, redirect to request detail
-    return HTMLResponse("TODO")
+    sr = session.exec(
+        select(ServiceRequest).where(ServiceRequest.id == request_id)
+    ).first()
+    if not sr:
+        return RedirectResponse("/staff", status_code=303)
+
+    allowed = VALID_TRANSITIONS.get(sr.status.value, [])
+    if status not in allowed:
+        return await request_detail(request, request_id, staff, session, error="Invalid status transition.")
+
+    old_status = sr.status.value
+    sr.status = RequestStatus(status)
+    sr.updated_at = datetime.now(UTC)
+    session.add(sr)
+
+    activity = RequestActivity(
+        request_id=sr.id,
+        action=f"Status changed from {old_status} to {status}",
+        staff_name=staff.name,
+    )
+    session.add(activity)
+    session.commit()
+
+    return RedirectResponse(f"/staff/requests/{request_id}", status_code=303)

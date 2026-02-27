@@ -344,3 +344,80 @@ def test_request_detail_back_link(client):
     client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
     resp = client.get("/staff/requests/1")
     assert 'href="/staff"' in resp.text
+
+
+# ---------------------------------------------------------------------------
+# Feature 8 — Status updates
+# ---------------------------------------------------------------------------
+
+def test_status_update_new_to_assigned(client):
+    """Advance request #3 (David's AC issue, status=new) to assigned."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.post(
+        "/staff/requests/3/status",
+        data={"status": "assigned"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "/staff/requests/3" in resp.headers["location"]
+
+
+def test_status_update_creates_activity(client):
+    """After updating status, a timeline entry should appear on the detail page."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    client.post("/staff/requests/3/status", data={"status": "assigned"})
+    resp = client.get("/staff/requests/3")
+    assert "assigned" in resp.text.lower()
+    assert "James Wilson" in resp.text
+
+
+def test_status_update_full_lifecycle(client):
+    """Walk request #3 through new -> assigned -> in_progress -> completed."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    client.post("/staff/requests/3/status", data={"status": "assigned"})
+    client.post("/staff/requests/3/status", data={"status": "in_progress"})
+    client.post("/staff/requests/3/status", data={"status": "completed"})
+    resp = client.get("/staff/requests/3")
+    assert "Completed" in resp.text
+    assert "Update Status" not in resp.text
+
+
+def test_status_update_invalid_transition_rejected(client):
+    """Trying to skip new -> completed should be rejected."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.post(
+        "/staff/requests/3/status",
+        data={"status": "completed"},
+    )
+    assert resp.status_code == 200
+    assert "Invalid" in resp.text or "invalid" in resp.text
+
+
+def test_status_update_visible_on_dashboard(client):
+    """After updating a request, the new status should appear on the dashboard."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    client.post("/staff/requests/3/status", data={"status": "assigned"})
+    resp = client.get("/staff")
+    assert "Assigned" in resp.text
+
+
+def test_status_update_visible_on_guest_requests(client):
+    """After staff updates a request, the guest should see the new status."""
+    staff_client = client
+    staff_client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    staff_client.post("/staff/requests/3/status", data={"status": "assigned"})
+    staff_client.post("/logout")
+    staff_client.post("/login", data={"confirmation_code": "GM-2026-002", "last_name": "Kim"})
+    resp = staff_client.get("/guest/requests")
+    assert "Assigned" in resp.text
+
+
+def test_status_update_nonexistent_request(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.post(
+        "/staff/requests/999/status",
+        data={"status": "assigned"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "/staff" in resp.headers["location"]
