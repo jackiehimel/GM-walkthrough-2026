@@ -1,0 +1,31 @@
+<p class="text-muted mb-2">{{ requests|length }} result{{ 's' if requests|length != 1 }}</p>
+{% if requests %}
+<div class="table-responsive">
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Guest</th>
+        <th>Room</th>
+        <th>Category</th>
+        <th>Request Type</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th>Description</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in requests %}
+      {% include "_partials/request_row.html" with context %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2);">
+  <div class="card-body text-center py-5">
+    <p class="text-muted mb-0">No requests match your filters.</p>
+  </div>
+</div>
+{% endif %}

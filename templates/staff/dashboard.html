@@ -3,37 +3,41 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
   <h2 class="mb-0" style="font-family: 'Playfair Display', serif; color: #1a2332;">Service Requests</h2>
-  <span class="text-muted">{{ requests|length }} request{{ 's' if requests|length != 1 }}</span>
 </div>
 
-{% if requests %}
-<div class="table-responsive">
-  <table class="table table-striped table-hover">
-    <thead>
-      <tr>
-        <th>Guest</th>
-        <th>Room</th>
-        <th>Category</th>
-        <th>Request Type</th>
-        <th>Priority</th>
-        <th>Status</th>
-        <th>Submitted</th>
-        <th>Description</th>
-        <th>Action</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for req in requests %}
-      {% include "_partials/request_row.html" with context %}
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% else %}
-<div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2);">
-  <div class="card-body text-center py-5">
-    <p class="text-muted mb-0">No service requests yet.</p>
+<form hx-get="/staff/requests/filter" hx-target="#results" hx-trigger="change, keyup changed delay:300ms from:#search-input" class="row g-2 mb-4 align-items-end">
+  <div class="col-auto">
+    <label for="status-filter" class="form-label mb-1 small fw-semibold">Status</label>
+    <select class="form-select form-select-sm" id="status-filter" name="status_filter">
+      <option value="">All Statuses</option>
+      <option value="new" {% if status_filter == 'new' %}selected{% endif %}>New</option>
+      <option value="assigned" {% if status_filter == 'assigned' %}selected{% endif %}>Assigned</option>
+      <option value="in_progress" {% if status_filter == 'in_progress' %}selected{% endif %}>In Progress</option>
+      <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+    </select>
   </div>
+  <div class="col-auto">
+    <label for="category-filter" class="form-label mb-1 small fw-semibold">Category</label>
+    <select class="form-select form-select-sm" id="category-filter" name="category_filter">
+      <option value="">All Categories</option>
+      <option value="housekeeping" {% if category_filter == 'housekeeping' %}selected{% endif %}>Housekeeping</option>
+      <option value="dining" {% if category_filter == 'dining' %}selected{% endif %}>Dining</option>
+      <option value="maintenance" {% if category_filter == 'maintenance' %}selected{% endif %}>Maintenance</option>
+      <option value="concierge" {% if category_filter == 'concierge' %}selected{% endif %}>Concierge</option>
+      <option value="front_desk" {% if category_filter == 'front_desk' %}selected{% endif %}>Front Desk</option>
+      <option value="other" {% if category_filter == 'other' %}selected{% endif %}>Other</option>
+    </select>
+  </div>
+  <div class="col-auto">
+    <label for="search-input" class="form-label mb-1 small fw-semibold">Search</label>
+    <input type="text" class="form-control form-control-sm" id="search-input" name="search" placeholder="Guest name or description..." value="{{ search }}">
+  </div>
+  <div class="col-auto">
+    <a href="/staff" class="btn btn-outline-secondary btn-sm">Clear</a>
+  </div>
+</form>
+
+<div id="results">
+  {% include "_partials/staff_requests_table.html" %}
 </div>
-{% endif %}
 {% endblock %}

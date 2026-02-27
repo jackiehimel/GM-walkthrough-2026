@@ -458,3 +458,65 @@ def test_my_requests_has_htmx_polling(client):
     resp = client.get("/guest/requests")
     assert 'hx-get="/guest/requests/poll"' in resp.text
     assert 'hx-trigger="every 3s"' in resp.text
+
+
+# ---------------------------------------------------------------------------
+# Feature 11 — Filters & search on staff dashboard
+# ---------------------------------------------------------------------------
+
+def test_dashboard_filter_by_status(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/filter?status_filter=new")
+    assert resp.status_code == 200
+    assert "Maintenance" in resp.text
+    assert "Dining" not in resp.text
+
+
+def test_dashboard_filter_by_category(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/filter?category_filter=housekeeping")
+    assert resp.status_code == 200
+    assert "Housekeeping" in resp.text
+    assert "Dining" not in resp.text
+    assert "Maintenance" not in resp.text
+
+
+def test_dashboard_search_by_guest_name(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/filter?search=Emily")
+    assert resp.status_code == 200
+    assert "Emily" in resp.text
+    assert "David" not in resp.text
+    assert "Lisa" not in resp.text
+
+
+def test_dashboard_search_by_description(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/filter?search=cooling")
+    assert resp.status_code == 200
+    assert "Maintenance" in resp.text
+    assert "Housekeeping" not in resp.text
+
+
+def test_dashboard_clear_filters(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert "Emily" in resp.text
+    assert "David" in resp.text
+    assert "Lisa" in resp.text
+
+
+def test_dashboard_has_filter_controls(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert "status_filter" in resp.text
+    assert "category_filter" in resp.text
+    assert "search" in resp.text
+    assert "Clear" in resp.text
+
+
+def test_dashboard_filter_no_results(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/filter?search=nonexistent_xyz")
+    assert resp.status_code == 200
+    assert "No requests match" in resp.text
