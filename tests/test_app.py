@@ -284,3 +284,63 @@ def test_staff_dashboard_shows_categories(client):
     assert "Dining" in resp.text
     assert "Maintenance" in resp.text
     assert "Front Desk" in resp.text
+
+
+# ---------------------------------------------------------------------------
+# Feature 7 — Request detail page
+# ---------------------------------------------------------------------------
+
+def test_request_detail_renders(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/1")
+    assert resp.status_code == 200
+    assert "Request #1" in resp.text
+
+
+def test_request_detail_shows_guest_info(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/1")
+    assert "Emily" in resp.text and "Parker" in resp.text
+    assert "12-501" in resp.text
+
+
+def test_request_detail_shows_request_fields(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/1")
+    assert "Housekeeping" in resp.text
+    assert "Extra towels" in resp.text
+    assert "bg-info" in resp.text or "bg-warning" in resp.text  # status or priority badge
+
+
+def test_request_detail_shows_activity_timeline(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/1")
+    assert "Activity Timeline" in resp.text
+
+
+def test_request_detail_shows_status_update_form(client):
+    """A request with status 'new' should show an update form with 'assigned' option."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/3")  # David's AC issue, status=new
+    assert "Update Status" in resp.text
+    assert "Assigned" in resp.text
+
+
+def test_request_detail_completed_has_no_update_form(client):
+    """A completed request should not show status update controls."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/2")  # Emily's dining request, status=completed
+    assert "Update Status" not in resp.text
+
+
+def test_request_detail_nonexistent_redirects(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/999", follow_redirects=False)
+    assert resp.status_code == 303
+    assert "/staff" in resp.headers["location"]
+
+
+def test_request_detail_back_link(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff/requests/1")
+    assert 'href="/staff"' in resp.text

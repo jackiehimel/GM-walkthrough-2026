@@ -1,11 +1,68 @@
 {% extends "base.html" %}
-{% block title %}Request Detail - The Grand Meridian{% endblock %}
+{% block title %}Request #{{ sr.id }} - The Grand Meridian{% endblock %}
 {% block content %}
-<!-- TODO: Build request detail page
-     - Back button to /staff dashboard
-     - Request info card: guest name, room, category, request_type, priority badge, status badge, created_at, description
-     - Status update form: POST to /staff/requests/{sr.id}/status with status dropdown + submit button
-     - Activity timeline: list of RequestActivity entries (action, note, timestamp) ordered chronologically
-     Context variables available: sr (ServiceRequest with guest relationship), activities (list of RequestActivity), staff (StaffUser)
--->
+<div class="mb-4">
+  <a href="/staff" class="btn btn-outline-secondary btn-sm">&larr; Back to Dashboard</a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+
+<div class="row g-4">
+  <div class="col-lg-7">
+    <div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2);">
+      <div class="card-body">
+        <h2 class="card-title" style="font-family: 'Playfair Display', serif; color: #1a2332;">Request #{{ sr.id }}</h2>
+        <table class="table table-borderless mb-0">
+          <tr><th style="width:140px">Guest</th><td>{{ sr.guest.first_name }} {{ sr.guest.last_name }}</td></tr>
+          <tr><th>Room</th><td>{{ sr.guest.room_number or '-' }}</td></tr>
+          <tr><th>Category</th><td>{{ sr.category.value|replace('_', ' ')|title }}</td></tr>
+          <tr><th>Request Type</th><td>{{ sr.request_type or '-' }}</td></tr>
+          <tr>
+            <th>Priority</th>
+            <td><span class="badge bg-{% if sr.priority.value == 'high' %}danger{% elif sr.priority.value == 'medium' %}warning{% else %}secondary{% endif %}">{{ sr.priority.value|title }}</span></td>
+          </tr>
+          <tr>
+            <th>Status</th>
+            <td><span class="badge bg-{% if sr.status.value == 'completed' %}success{% elif sr.status.value == 'in_progress' %}info{% elif sr.status.value == 'assigned' %}primary{% else %}secondary{% endif %}">{{ sr.status.value|replace('_', ' ')|title }}</span></td>
+          </tr>
+          <tr><th>Submitted</th><td>{{ sr.created_at.strftime('%b %d, %Y at %H:%M') }}</td></tr>
+          <tr><th>Description</th><td>{{ sr.description or '-' }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    {% if next_statuses %}
+    <div class="card mt-3" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2);">
+      <div class="card-body">
+        <h5 style="font-family: 'Playfair Display', serif; color: #1a2332;">Update Status</h5>
+        <form method="post" action="/staff/requests/{{ sr.id }}/status" class="d-flex gap-2 align-items-end">
+          <div class="flex-grow-1">
+            <select class="form-select" name="status" required>
+              {% for s in next_statuses %}
+              <option value="{{ s }}">{{ s|replace('_', ' ')|title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary">Update</button>
+        </form>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="col-lg-5">
+    <h5 style="font-family: 'Playfair Display', serif; color: #1a2332;">Activity Timeline</h5>
+    {% if activities %}
+    <ul class="list-group">
+      {% for a in activities %}
+      {% include "_partials/activity_item.html" %}
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-muted">No activity recorded yet.</p>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}

@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from app.auth import require_staff
 from app.database import get_session
-from app.models import Guest, RequestActivity, RequestCategory, RequestPriority, RequestStatus, ServiceRequest, StaffUser
+from app.models import Guest, RequestActivity, RequestCategory, RequestPriority, RequestStatus, ServiceRequest, StaffUser, VALID_TRANSITIONS
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent.parent / "templates"))
@@ -40,9 +40,32 @@ async def request_detail(
     request_id: int,
     staff: StaffUser = Depends(require_staff),
     session: Session = Depends(get_session),
+    error: str | None = None,
 ):
-    # TODO: Render request detail with full info and activity timeline
-    return HTMLResponse("TODO")
+    sr = session.exec(
+        select(ServiceRequest)
+        .options(selectinload(ServiceRequest.guest))
+        .where(ServiceRequest.id == request_id)
+    ).first()
+    if not sr:
+        return RedirectResponse("/staff", status_code=303)
+    activities = session.exec(
+        select(RequestActivity)
+        .where(RequestActivity.request_id == request_id)
+        .order_by(RequestActivity.created_at.asc())
+    ).all()
+    next_statuses = VALID_TRANSITIONS.get(sr.status.value, [])
+    return templates.TemplateResponse(
+        request,
+        "staff/request_detail.html",
+        context={
+            "sr": sr,
+            "activities": activities,
+            "staff": staff,
+            "next_statuses": next_statuses,
+            "error": error,
+        },
+    )
 
 
 @router.post("/requests/{request_id}/status")
