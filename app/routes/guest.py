@@ -49,6 +49,20 @@ async def my_requests(
     )
 
 
+@router.get("/requests/poll", response_class=HTMLResponse)
+async def my_requests_poll(
+    request: Request,
+    guest: Guest = Depends(get_current_guest),
+    session: Session = Depends(get_session),
+):
+    requests_list = _guest_requests(session, guest.id)
+    return templates.TemplateResponse(
+        request,
+        "_partials/request_rows.html",
+        context={"requests": requests_list, "is_staff": False},
+    )
+
+
 CATEGORY_OPTIONS = {
     "housekeeping": ["Extra towels", "Room cleaning", "Amenity refill"],
     "dining": ["Room service", "Restaurant reservation", "Special dietary request"],

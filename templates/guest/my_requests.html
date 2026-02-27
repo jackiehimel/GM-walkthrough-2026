@@ -22,7 +22,7 @@
         <th>Description</th>
       </tr>
     </thead>
-    <tbody>
+    <tbody hx-get="/guest/requests/poll" hx-trigger="every 3s" hx-swap="innerHTML">
       {% for req in requests %}
       {% include "_partials/request_row.html" with context %}
       {% endfor %}

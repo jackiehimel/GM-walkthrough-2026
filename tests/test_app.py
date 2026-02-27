@@ -2,11 +2,17 @@
 import pytest
 from fastapi.testclient import TestClient
 
+from app.database import engine
 from app.main import app
+from app.models import SQLModel
+from app.seed import seed
 
 
 @pytest.fixture()
 def client():
+    SQLModel.metadata.drop_all(engine)
+    SQLModel.metadata.create_all(engine)
+    seed()
     with TestClient(app) as c:
         yield c
 
@@ -372,12 +378,12 @@ def test_status_update_creates_activity(client):
 
 
 def test_status_update_full_lifecycle(client):
-    """Walk request #3 through new -> assigned -> in_progress -> completed."""
+    """Walk request #5 (Lisa's front_desk, status=new) through full lifecycle."""
     client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
-    client.post("/staff/requests/3/status", data={"status": "assigned"})
-    client.post("/staff/requests/3/status", data={"status": "in_progress"})
-    client.post("/staff/requests/3/status", data={"status": "completed"})
-    resp = client.get("/staff/requests/3")
+    client.post("/staff/requests/5/status", data={"status": "assigned"})
+    client.post("/staff/requests/5/status", data={"status": "in_progress"})
+    client.post("/staff/requests/5/status", data={"status": "completed"})
+    resp = client.get("/staff/requests/5")
     assert "Completed" in resp.text
     assert "Update Status" not in resp.text
 
@@ -421,3 +427,34 @@ def test_status_update_nonexistent_request(client):
     )
     assert resp.status_code == 303
     assert "/staff" in resp.headers["location"]
+
+
+# ---------------------------------------------------------------------------
+# Feature 9 — Real-time updates (HTMX polling)
+# ---------------------------------------------------------------------------
+
+def test_poll_endpoint_returns_rows(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests/poll")
+    assert resp.status_code == 200
+    assert "Housekeeping" in resp.text
+    assert "Dining" in resp.text
+
+
+def test_poll_endpoint_reflects_status_change(client):
+    """Staff updates a request, then guest poll should show the new status."""
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    client.post("/staff/requests/3/status", data={"status": "assigned"})
+    client.post("/logout")
+    client.post("/login", data={"confirmation_code": "GM-2026-002", "last_name": "Kim"})
+    resp = client.get("/guest/requests/poll")
+    assert resp.status_code == 200
+    assert "Assigned" in resp.text
+
+
+def test_my_requests_has_htmx_polling(client):
+    """The my_requests page should have hx-get polling on the tbody."""
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests")
+    assert 'hx-get="/guest/requests/poll"' in resp.text
+    assert 'hx-trigger="every 3s"' in resp.text
