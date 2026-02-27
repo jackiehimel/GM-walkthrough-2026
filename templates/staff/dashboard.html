@@ -1,13 +1,39 @@
 {% extends "base.html" %}
 {% block title %}Staff Dashboard - The Grand Meridian{% endblock %}
 {% block content %}
-<!-- TODO: Build staff dashboard
-     - Table showing ALL requests across all guests
-     - Columns: Guest, Room, Category, Request type, Priority, Status, Submitted, Description, Action
-     - Status badges: new=secondary, assigned=primary, in_progress=info, completed=success
-     - Priority badges: low=secondary, medium=warning, high=danger
-     - Each row links to /staff/requests/{id} detail page
-     - Empty state message when no requests
-     Context variables available: requests (list of ServiceRequest), staff (StaffUser)
--->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0" style="font-family: 'Playfair Display', serif; color: #1a2332;">Service Requests</h2>
+  <span class="text-muted">{{ requests|length }} request{{ 's' if requests|length != 1 }}</span>
+</div>
+
+{% if requests %}
+<div class="table-responsive">
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Guest</th>
+        <th>Room</th>
+        <th>Category</th>
+        <th>Request Type</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th>Description</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in requests %}
+      {% include "_partials/request_row.html" with context %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2);">
+  <div class="card-body text-center py-5">
+    <p class="text-muted mb-0">No service requests yet.</p>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

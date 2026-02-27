@@ -4,11 +4,12 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from app.auth import require_staff
 from app.database import get_session
-from app.models import RequestActivity, RequestCategory, RequestPriority, RequestStatus, ServiceRequest, StaffUser
+from app.models import Guest, RequestActivity, RequestCategory, RequestPriority, RequestStatus, ServiceRequest, StaffUser
 
 router = APIRouter(prefix="/staff", tags=["staff"])
 templates = Jinja2Templates(directory=str(Path(__file__).resolve().parent.parent.parent / "templates"))
@@ -20,8 +21,17 @@ async def staff_dashboard(
     staff: StaffUser = Depends(require_staff),
     session: Session = Depends(get_session),
 ):
-    # TODO: Render staff dashboard with all requests, status/priority badges
-    return HTMLResponse("TODO")
+    statement = (
+        select(ServiceRequest)
+        .options(selectinload(ServiceRequest.guest))
+        .order_by(ServiceRequest.created_at.desc())
+    )
+    requests_list = list(session.exec(statement).all())
+    return templates.TemplateResponse(
+        request,
+        "staff/dashboard.html",
+        context={"requests": requests_list, "staff": staff, "is_staff": True},
+    )
 
 
 @router.get("/requests/{request_id}", response_class=HTMLResponse)

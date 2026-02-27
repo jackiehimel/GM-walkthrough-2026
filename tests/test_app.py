@@ -232,3 +232,55 @@ def test_guest_requests_newest_first(client):
     concierge_pos = text.find("Concert tonight")
     breakfast_pos = text.find("Breakfast for two")
     assert concierge_pos < breakfast_pos, "Newest request should appear first"
+
+
+# ---------------------------------------------------------------------------
+# Feature 6 — Staff dashboard
+# ---------------------------------------------------------------------------
+
+def test_staff_dashboard_renders(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert resp.status_code == 200
+    assert "Service Requests" in resp.text
+
+
+def test_staff_dashboard_shows_all_guests(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert resp.status_code == 200
+    assert "Emily" in resp.text and "Parker" in resp.text
+    assert "David" in resp.text and "Kim" in resp.text
+    assert "Lisa" in resp.text and "Chen" in resp.text
+
+
+def test_staff_dashboard_status_badges(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert "bg-secondary" in resp.text  # new
+    assert "bg-info" in resp.text  # in_progress
+    assert "bg-success" in resp.text  # completed
+    assert "bg-primary" in resp.text  # assigned
+
+
+def test_staff_dashboard_priority_badges(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert "bg-danger" in resp.text  # high
+    assert "bg-warning" in resp.text  # medium
+
+
+def test_staff_dashboard_view_links(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert "/staff/requests/" in resp.text
+    assert "View" in resp.text
+
+
+def test_staff_dashboard_shows_categories(client):
+    client.post("/staff/login", data={"employee_id": "EMP-2026-002", "last_name": "Wilson"})
+    resp = client.get("/staff")
+    assert "Housekeeping" in resp.text
+    assert "Dining" in resp.text
+    assert "Maintenance" in resp.text
+    assert "Front Desk" in resp.text
