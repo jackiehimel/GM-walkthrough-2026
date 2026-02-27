@@ -1,13 +1,40 @@
 {% extends "base.html" %}
 {% block title %}My Requests - The Grand Meridian{% endblock %}
 {% block content %}
-<!-- TODO: Build guest request list
-     - "New Request" button linking to /guest/requests/new
-     - "Back to Home" button linking to /guest
-     - Table with columns: Category, Request type, Priority, Status, Submitted, Description
-     - Each row shows one ServiceRequest with status/priority badges
-     - Empty state message when no requests exist
-     - Requests ordered newest first
-     Context variables available: requests (list of ServiceRequest)
--->
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="mb-0" style="font-family: 'Playfair Display', serif; color: #1a2332;">My Requests</h2>
+  <div class="d-flex gap-2">
+    <a href="/guest/requests/new" class="btn btn-primary">New Request</a>
+    <a href="/guest" class="btn btn-outline-secondary">Back to Home</a>
+  </div>
+</div>
+
+{% if requests %}
+<div class="table-responsive">
+  <table class="table table-striped table-hover">
+    <thead>
+      <tr>
+        <th>Category</th>
+        <th>Request Type</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Submitted</th>
+        <th>Description</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for req in requests %}
+      {% include "_partials/request_row.html" with context %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2);">
+  <div class="card-body text-center py-5">
+    <p class="text-muted mb-3">You have no service requests yet.</p>
+    <a href="/guest/requests/new" class="btn btn-primary">Submit Your First Request</a>
+  </div>
+</div>
+{% endif %}
 {% endblock %}

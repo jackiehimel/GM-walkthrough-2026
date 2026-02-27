@@ -1,14 +1,77 @@
 {% extends "base.html" %}
 {% block title %}Submit Request - The Grand Meridian{% endblock %}
 {% block content %}
-<!-- TODO: Build submit request form
-     - Form POSTs to /guest/requests
-     - Category dropdown (housekeeping, dining, maintenance, concierge, front_desk)
-     - Request type dropdown (populated from category_options dict)
-     - Description textarea (required when request_type is "Other")
-     - Priority dropdown (low, medium, high; default medium)
-     - Pre-select category from preselect_category query param
-     - Submit and Cancel buttons
-     Context variables available: category_options (dict), preselect_category (str|None)
--->
+<div class="row justify-content-center py-4">
+  <div class="col-md-8 col-lg-6">
+    <div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2); border-radius: 12px; box-shadow: 0 4px 24px rgba(26,35,50,0.08);">
+      <div class="card-body p-4">
+        <h2 class="card-title mb-3" style="font-family: 'Playfair Display', serif; color: #1a2332;">Submit a Request</h2>
+        {% if error %}
+        <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="/guest/requests">
+          <div class="mb-3">
+            <label for="category" class="form-label fw-semibold">Category</label>
+            <select class="form-select" id="category" name="category" required>
+              <option value="">Select a category</option>
+              <option value="housekeeping" {% if preselect_category == 'housekeeping' %}selected{% endif %}>Housekeeping</option>
+              <option value="dining" {% if preselect_category == 'dining' %}selected{% endif %}>Dining</option>
+              <option value="maintenance" {% if preselect_category == 'maintenance' %}selected{% endif %}>Maintenance</option>
+              <option value="concierge" {% if preselect_category == 'concierge' %}selected{% endif %}>Concierge</option>
+              <option value="front_desk" {% if preselect_category == 'front_desk' %}selected{% endif %}>Front Desk</option>
+              <option value="other" {% if preselect_category == 'other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="request_type" class="form-label fw-semibold">Request Type</label>
+            <select class="form-select" id="request_type" name="request_type">
+              <option value="">— Select type —</option>
+              {% for opt in category_options.get(preselect_category|default('housekeeping'), []) %}
+              <option value="{{ opt }}" {% if preselect_request_type == opt %}selected{% endif %}>{{ opt }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="priority" class="form-label fw-semibold">Priority</label>
+            <select class="form-select" id="priority" name="priority">
+              <option value="low">Low</option>
+              <option value="medium" selected>Medium</option>
+              <option value="high">High</option>
+            </select>
+          </div>
+          <div class="mb-4">
+            <label for="description" class="form-label fw-semibold">Description</label>
+            <textarea class="form-control" id="description" name="description" rows="4" placeholder="Add details about your request..."></textarea>
+            <div id="desc-required-hint" class="text-danger small mt-1" style="display: none;">A description is required when Other is selected.</div>
+          </div>
+          <script>
+            (function() {
+              var opts = {{ category_options_json|safe }};
+              var cat = document.getElementById('category');
+              var rt = document.getElementById('request_type');
+              var descHint = document.getElementById('desc-required-hint');
+              function update() {
+                var val = cat.value || 'housekeeping';
+                var choices = opts[val] || opts['other'] || ['Other'];
+                var prev = rt.value;
+                rt.innerHTML = '<option value="">— Select type —</option>' +
+                  choices.map(function(c) {
+                    var sel = (prev === c) ? ' selected' : '';
+                    return '<option value="' + c + '"' + sel + '>' + c + '</option>';
+                  }).join('');
+                if (descHint) descHint.style.display = val === 'other' ? 'block' : 'none';
+              }
+              cat.addEventListener('change', update);
+              update();
+            })();
+          </script>
+          <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Submit</button>
+            <a href="/guest/requests" class="btn btn-outline-secondary">Cancel</a>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}

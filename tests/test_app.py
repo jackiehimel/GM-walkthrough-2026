@@ -65,8 +65,112 @@ def test_guest_routes_require_auth(client):
     assert "/login" in resp.headers["location"]
 
 
+def test_guest_home_welcome_emily(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest")
+    assert resp.status_code == 200
+    assert "Emily" in resp.text
+    assert "Welcome" in resp.text
+
+
+def test_guest_home_welcome_david(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-002", "last_name": "Kim"})
+    resp = client.get("/guest")
+    assert resp.status_code == 200
+    assert "David" in resp.text
+    assert "Welcome" in resp.text
+
+
+def test_guest_home_quick_action_tiles(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest")
+    assert resp.status_code == 200
+    assert "Extra Towels" in resp.text
+    assert "Room Service" in resp.text
+    assert "Late Checkout" in resp.text
+
+
+def test_guest_home_extra_towels_tile_links_correctly(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest")
+    assert resp.status_code == 200
+    assert 'href="/guest/requests/new?category=housekeeping&request_type=Extra+towels"' in resp.text
+
+
 def test_staff_routes_require_auth(client):
     resp = client.get("/staff", follow_redirects=False)
     # Should redirect to staff login
     assert resp.status_code == 303
     assert "/staff/login" in resp.headers["location"]
+
+
+def test_submit_form_renders(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests/new")
+    assert resp.status_code == 200
+    assert "category" in resp.text.lower()
+    assert "priority" in resp.text.lower()
+    assert "description" in resp.text.lower()
+
+
+def test_submit_form_category_preselected_from_tile(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests/new?category=dining&request_type=Room+service")
+    assert resp.status_code == 200
+    assert 'value="dining" selected' in resp.text or 'value="dining" selected' in resp.text.replace(" ", "")
+
+
+def test_submit_request_creates_and_redirects(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.post(
+        "/guest/requests",
+        data={
+            "category": "dining",
+            "priority": "high",
+            "request_type": "Room service",
+            "description": "Breakfast for two",
+        },
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "/guest/requests" in resp.headers["location"]
+
+
+def test_submit_request_appears_in_list(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    client.post(
+        "/guest/requests",
+        data={
+            "category": "dining",
+            "priority": "high",
+            "request_type": "Room service",
+            "description": "Breakfast for two",
+        },
+    )
+    resp = client.get("/guest/requests")
+    assert resp.status_code == 200
+    assert "dining" in resp.text.lower() or "Dining" in resp.text
+    assert "high" in resp.text.lower()
+    assert "new" in resp.text.lower()
+    assert "Breakfast for two" in resp.text
+
+
+def test_submit_other_requires_description(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.post(
+        "/guest/requests",
+        data={"category": "other", "priority": "medium", "request_type": "Other", "description": ""},
+    )
+    assert resp.status_code == 200
+    assert "required" in resp.text.lower() or "description" in resp.text.lower()
+
+
+def test_submit_other_with_description_succeeds(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.post(
+        "/guest/requests",
+        data={"category": "other", "priority": "low", "request_type": "Other", "description": "Custom request details"},
+        follow_redirects=False,
+    )
+    assert resp.status_code == 303
+    assert "/guest/requests" in resp.headers["location"]

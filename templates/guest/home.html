@@ -1,13 +1,49 @@
 {% extends "base.html" %}
 {% block title %}Welcome - The Grand Meridian{% endblock %}
 {% block content %}
-<!-- TODO: Build guest home screen
-     - Welcome message with guest.first_name
-     - Room number and tier display
-     - Quick-action service tiles (Housekeeping, Dining, Maintenance, Concierge, Front Desk)
-     - Each tile links to /guest/requests/new?category=<category>
-     - "View My Requests" button linking to /guest/requests
-     - Must work at 375px viewport width
-     Context variables available: guest (Guest model)
--->
+<div class="guest-welcome">
+  <h1 class="welcome-title">Welcome, {{ guest.first_name }}</h1>
+  {% if guest.room_number %}
+  <p class="guest-meta">Room {{ guest.room_number }}{% if guest.tier %} <span class="tier-badge">{{ guest.tier.value }}</span>{% endif %}</p>
+  {% elif guest.tier %}
+  <p class="guest-meta"><span class="tier-badge">{{ guest.tier.value }}</span></p>
+  {% endif %}
+</div>
+
+<h2 class="h2 mb-3">Quick Actions</h2>
+<div class="row g-3">
+  <div class="col-12 col-md-6 col-lg-4">
+    <a href="/guest/requests/new?category=housekeeping&request_type=Extra+towels" class="text-decoration-none d-block">
+      <div class="card service-tile h-100">
+        <div class="card-body">
+          <div class="tile-icon"><i class="bi bi-droplet-half"></i></div>
+          <h3 class="card-title">Extra Towels</h3>
+          <p class="tile-subtitle">Request additional towels for your room</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-12 col-md-6 col-lg-4">
+    <a href="/guest/requests/new?category=dining&request_type=Room+service" class="text-decoration-none d-block">
+      <div class="card service-tile h-100">
+        <div class="card-body">
+          <div class="tile-icon"><i class="bi bi-cup-hot"></i></div>
+          <h3 class="card-title">Room Service</h3>
+          <p class="tile-subtitle">Order meals and beverages to your room</p>
+        </div>
+      </div>
+    </a>
+  </div>
+  <div class="col-12 col-md-6 col-lg-4">
+    <a href="/guest/requests/new?category=front_desk&request_type=Late+checkout" class="text-decoration-none d-block">
+      <div class="card service-tile h-100">
+        <div class="card-body">
+          <div class="tile-icon"><i class="bi bi-clock"></i></div>
+          <h3 class="card-title">Late Checkout</h3>
+          <p class="tile-subtitle">Request extended checkout time</p>
+        </div>
+      </div>
+    </a>
+  </div>
+</div>
 {% endblock %}

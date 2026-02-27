@@ -1,4 +1,5 @@
 # app/routes/guest.py — Guest-facing routes (prefix /guest)
+import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -19,13 +20,19 @@ async def guest_home(
     request: Request,
     guest: Guest = Depends(get_current_guest),
 ):
-    # TODO: Render guest home with welcome message and quick-action tiles
-    return HTMLResponse("TODO")
+    return templates.TemplateResponse(
+        request, "guest/home.html",
+        context={"guest": guest},
+    )
 
 
-def _guest_requests(session, guest_id):
-    # TODO: Fetch all ServiceRequests for guest, newest first
-    pass
+def _guest_requests(session: Session, guest_id: int) -> list[ServiceRequest]:
+    statement = (
+        select(ServiceRequest)
+        .where(ServiceRequest.guest_id == guest_id)
+        .order_by(ServiceRequest.created_at.desc())
+    )
+    return list(session.exec(statement).all())
 
 
 @router.get("/requests", response_class=HTMLResponse)
@@ -34,8 +41,12 @@ async def my_requests(
     guest: Guest = Depends(get_current_guest),
     session: Session = Depends(get_session),
 ):
-    # TODO: Render guest's request list (status, category, priority, time)
-    return HTMLResponse("TODO")
+    requests_list = _guest_requests(session, guest.id)
+    return templates.TemplateResponse(
+        request,
+        "guest/my_requests.html",
+        context={"requests": requests_list, "is_staff": False},
+    )
 
 
 CATEGORY_OPTIONS = {
@@ -53,9 +64,20 @@ async def submit_request_form(
     request: Request,
     guest: Guest = Depends(get_current_guest),
     category: str | None = None,
+    request_type: str | None = None,
 ):
-    # TODO: Render submit request form with category, priority, description fields
-    return HTMLResponse("TODO")
+    preselect_category = category
+    preselect_request_type = request_type
+    return templates.TemplateResponse(
+        request,
+        "guest/submit_request.html",
+        context={
+            "category_options": CATEGORY_OPTIONS,
+            "category_options_json": json.dumps(CATEGORY_OPTIONS),
+            "preselect_category": preselect_category,
+            "preselect_request_type": preselect_request_type,
+        },
+    )
 
 
 def _description_required_for_category(category: str, description: str) -> bool:
@@ -75,6 +97,42 @@ async def create_request(
     request_type: str | None = Form(None),
     description: str = Form(""),
 ):
-    # TODO: Create ServiceRequest, add RequestActivity, redirect to /guest/requests
-    # Validation: when category is "other", description is required (use _description_required_for_category)
-    return HTMLResponse("TODO")
+    if not _description_required_for_category(category, description):
+        return templates.TemplateResponse(
+            request,
+            "guest/submit_request.html",
+            context={
+                "category_options": CATEGORY_OPTIONS,
+                "category_options_json": json.dumps(CATEGORY_OPTIONS),
+                "preselect_category": category,
+                "preselect_request_type": request_type,
+                "error": "Description is required when category is Other.",
+            },
+        )
+    try:
+        req_category = RequestCategory(category)
+        req_priority = RequestPriority(priority)
+    except ValueError:
+        return templates.TemplateResponse(
+            request,
+            "guest/submit_request.html",
+            context={
+                "category_options": CATEGORY_OPTIONS,
+                "category_options_json": json.dumps(CATEGORY_OPTIONS),
+                "preselect_category": category,
+                "preselect_request_type": request_type,
+                "error": "Invalid category or priority.",
+            },
+        )
+    sr = ServiceRequest(
+        guest_id=guest.id,
+        category=req_category,
+        priority=req_priority,
+        request_type=request_type.strip() if (request_type and request_type.strip()) else None,
+        description=(description or "").strip(),
+        status=RequestStatus.new,
+    )
+    session.add(sr)
+    session.commit()
+    session.refresh(sr)
+    return RedirectResponse("/guest/requests", status_code=303)
