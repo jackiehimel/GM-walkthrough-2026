@@ -1,0 +1,16 @@
+# requirements.txt — Python dependencies for The Grand Meridian Guest Services
+#
+# HOW TO USE:
+#   Install: pip install -r requirements.txt  (or: make install)
+#
+# KEY PACKAGES: fastapi, uvicorn, sqlmodel, jinja2, pydantic-settings
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+sqlmodel>=0.0.22
+jinja2>=3.1.0
+python-multipart>=0.0.12
+pydantic-settings>=2.6.0
+itsdangerous>=2.1.0
+pytest>=8.0.0
+pytest-html>=4.0.0
+httpx>=0.27.0

@@ -1,0 +1,54 @@
+{#-
+  templates/auth/staff_login.html — Staff login form
+
+  PURPOSE:
+    Renders the staff login form (employee ID + last name). Used by GET /staff/login.
+    Form POSTs to /staff/login. Displays error message when context includes "error".
+
+  CONTEXT VARIABLES:
+    request — FastAPI Request (required by base.html)
+    error   — Optional. If present, shown in alert above form (e.g. "Invalid employee ID or last name")
+
+  DEPENDENCIES:
+    Extends base.html. Uses Bootstrap form classes.
+
+  DEBUGGING:
+    - Form not showing: ensure route passes {"request": request} to TemplateResponse
+    - Error not displaying: pass error="message" in context on failed login
+    - Form action: POST /staff/login (must match route in app/routes/auth.py)
+    - Demo credentials: EMP-2026-002 / Wilson (see seed_data/seed.json)
+-#}
+{% extends "base.html" %}
+{% block title %}Staff Login - The Grand Meridian{% endblock %}
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-5">
+        <div class="card auth-card shadow-sm">
+            <div class="card-body p-5">
+                <h2 class="card-title mb-1">Staff Login</h2>
+                <p class="text-muted small mb-4">Access the staff dashboard</p>
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post" action="/staff/login">
+                    <div class="mb-3">
+                        <label for="employee_id" class="form-label fw-semibold">Employee ID</label>
+                        <input type="text" class="form-control" id="employee_id" name="employee_id" placeholder="EMP-2026-002" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="last_name" class="form-label fw-semibold">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="Wilson" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-3">Sign In</button>
+                </form>
+                <p class="mt-4 mb-0 text-muted small text-center">
+                    Guest? <a href="/login" class="text-decoration-none fw-semibold" style="color: var(--navy);">Guest Login</a>
+                </p>
+                <p class="mt-3 mb-0 text-muted small text-center">
+                    <strong>Demo:</strong> EMP-2026-002 / Wilson
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

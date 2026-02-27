@@ -1,0 +1,16 @@
+{# One row for a ServiceRequest. Used by guest/_requests_table and staff/_requests_table. Expects: req, is_staff. #}
+<tr>
+    {% if is_staff %}
+    <td>{{ req.guest.first_name }} {{ req.guest.last_name }}</td>
+    <td>{{ req.guest.room_number or '-' }}</td>
+    {% endif %}
+    <td>{{ req.category.value|replace('_', ' ')|title }}</td>
+    <td>{{ req.request_type or '-' }}</td>
+    <td><span class="badge bg-{% if req.priority.value == 'high' %}danger{% elif req.priority.value == 'medium' %}warning{% else %}secondary{% endif %}">{{ req.priority.value|title }}</span></td>
+    <td><span class="badge bg-{% if req.status.value == 'completed' %}success{% elif req.status.value == 'in_progress' %}info{% elif req.status.value == 'assigned' %}primary{% else %}secondary{% endif %}">{{ req.status.value|replace('_', ' ')|title }}</span></td>
+    <td>{{ req.created_at.strftime('%b %d, %H:%M') }}</td>
+    <td>{% if req.description %}{{ req.description[:50] }}{% if req.description|length > 50 %}...{% endif %}{% else %}-{% endif %}</td>
+    {% if is_staff %}
+    <td><a href="/staff/requests/{{ req.id }}">View</a></td>
+    {% endif %}
+</tr>

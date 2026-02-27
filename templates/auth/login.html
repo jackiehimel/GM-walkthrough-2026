@@ -1,0 +1,50 @@
+{#-
+  templates/auth/login.html — Guest login form
+
+  PURPOSE:
+    Renders the guest login form (confirmation code + last name). Used by GET /login.
+    Form POSTs to /login. Displays error message when context includes "error".
+
+  CONTEXT VARIABLES:
+    request — FastAPI Request (required by base.html)
+    error   — Optional. If present, shown in alert above form (e.g. "Invalid confirmation code or last name")
+
+  DEPENDENCIES:
+    Extends base.html. Uses Bootstrap form classes.
+
+  DEBUGGING:
+    - Form not showing: ensure route passes {"request": request} to TemplateResponse
+    - Error not displaying: pass error="message" in context on failed login
+    - Form action: POST /login (must match route in app/routes/auth.py)
+-#}
+{% extends "base.html" %}
+{% block title %}Guest Login - The Grand Meridian{% endblock %}
+{% block content %}
+<div class="row justify-content-center py-5">
+    <div class="col-md-5">
+        <div class="card" style="background: #fdfcf9; border: 1px solid rgba(201,162,39,0.2); border-radius: 12px; box-shadow: 0 4px 24px rgba(26,35,50,0.08);">
+            <div class="card-body p-5">
+                <h2 class="card-title mb-1" style="font-family: 'Playfair Display', serif; color: #1a2332;">Guest Login</h2>
+                <p class="text-muted small mb-4">Enter your reservation details to access your services</p>
+                {% if error %}
+                <div class="alert alert-danger">{{ error }}</div>
+                {% endif %}
+                <form method="post" action="/login">
+                    <div class="mb-4">
+                        <label for="confirmation_code" class="form-label fw-semibold">Confirmation Code</label>
+                        <input type="text" class="form-control" id="confirmation_code" name="confirmation_code" placeholder="e.g. GM-2026-001" required>
+                    </div>
+                    <div class="mb-4">
+                        <label for="last_name" class="form-label fw-semibold">Last Name</label>
+                        <input type="text" class="form-control" id="last_name" name="last_name" placeholder="e.g. Parker" required>
+                    </div>
+                    <button type="submit" class="btn w-100 py-3" style="background: #1a2332; border: none; color: white; font-weight: 600;">Sign In</button>
+                </form>
+                <p class="mt-4 mb-0 text-muted small text-center">
+                    Staff member? <a href="/staff/login" class="text-decoration-none fw-semibold" style="color: var(--navy);">Staff Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

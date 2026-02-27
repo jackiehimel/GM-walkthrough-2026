@@ -1,0 +1,35 @@
+---
+description: Agent discipline — stay focused, verify before claiming done, minimize scope creep
+alwaysApply: true
+---
+# Agent Discipline — Focus and Verification
+
+## Goal Clarity
+
+- Before implementing, confirm the user's goal in one sentence.
+- If acceptance criteria are unclear, ask: "Done when I can ___" or "Success means ___."
+- Do not add features, refactors, or improvements the user did not ask for.
+
+## Scope Control
+
+- Prefer the **minimal change** that satisfies the request.
+- If asked to fix X, do not refactor Y unless explicitly requested.
+- When in doubt, implement less and let the user ask for more.
+
+## Verification Before Claiming Done
+
+- **Run tests** before stating work is complete. If tests exist: `make test` or equivalent.
+- **Run the app** or relevant commands when changes affect runtime behavior.
+- Do not claim "this should work" without evidence. Show command output or test results.
+- If verification fails, fix before responding.
+
+## Evidence Over Assertion
+
+- Prefer showing output (e.g., test results, command output) over stating "it works."
+- When suggesting a fix, explain what changed and why.
+- If tradeoffs exist, state them briefly.
+
+## When the User Corrects
+
+- If the user says "that's not what I asked for" or "focus on X only," acknowledge and narrow scope immediately.
+- Do not defend or expand; adjust to the stated goal.

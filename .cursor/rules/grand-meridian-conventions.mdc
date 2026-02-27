@@ -1,0 +1,186 @@
+---
+description: Grand Meridian guest services app conventions and architecture
+alwaysApply: true
+---
+# Grand Meridian — Guest Services Web App
+
+## Project Overview
+A guest services web app for The Grand Meridian, a luxury hotel chain. Two user roles:
+- **Guest**: mobile-first web view to submit and track service requests
+- **Staff**: dashboard to manage and resolve all requests
+
+## Tech Stack
+- Python 3.11 / FastAPI
+- SQLite + SQLModel
+- Jinja2 templates + Bootstrap 5 (CDN)
+- HTMX for partial updates (stretch goal only)
+- Starlette SessionMiddleware for auth
+- uvicorn dev server
+- Makefile for commands
+
+## Architecture
+Server-rendered MVC pattern using FastAPI with Jinja2 templates:
+- `app/main.py` — FastAPI app factory, middleware, router registration, startup
+- `app/config.py` — pydantic-settings BaseSettings, .env loading
+- `app/database.py` — SQLModel engine, get_session dependency
+- `app/models.py` — SQLModel models (data layer)
+- `app/auth.py` — lookup_guest(), get_current_guest(), require_staff()
+- `app/seed.py` — database seeding from seed_data/seed.json
+- `app/routes/` — auth.py, guest.py, staff.py (route handlers)
+- `templates/` — Jinja2 HTML templates
+- `static/css/style.css` — Bootstrap overrides + custom styles
+- `seed_data/seed.json` — demo guest/request data
+
+## Data Models (SQLModel)
+
+### Guest
+- id, first_name, last_name, confirmation_code (unique), tier, status, room_number
+- Has many ServiceRequests
+
+### ServiceRequest
+- id, guest_id (FK → guest.id), category, priority, description, status, request_type, created_at, updated_at
+- Belongs to Guest, has many RequestActivities
+- Categories: housekeeping, dining, maintenance, concierge, front_desk, other (description required when "other")
+- Priorities: low, medium, high
+- Statuses: new, assigned, in_progress, completed
+
+### RequestActivity
+- id, request_id (FK → servicerequest.id), action, staff_name, note, created_at
+- Belongs to ServiceRequest
+
+### StaffUser
+- id, employee_id (unique), first_name, last_name, role
+- `name` is a computed property: `f"{first_name} {last_name}"`
+
+### Status Transitions
+```python
+VALID_TRANSITIONS = {
+    "new":         ["assigned"],
+    "assigned":    ["in_progress"],
+    "in_progress": ["completed"],
+    "completed":   [],
+}
+```
+
+## Authentication
+Simple session-based login via Starlette SessionMiddleware. No JWT, no OAuth.
+- Guest login: look up by confirmation_code + last_name (case-insensitive)
+- Store guest_id in request.session["guest_id"]
+- Staff login: look up by employee_id + last_name
+- Store staff_id in request.session["staff_id"]
+- Protected routes check session; redirect to /login if missing
+
+## Route Structure
+| URL | Method | Purpose |
+|---|---|---|
+| /login | GET | Show guest login form |
+| /login | POST | Authenticate guest |
+| /staff/login | GET | Show staff login form |
+| /staff/login | POST | Authenticate staff |
+| /guest | GET | Guest home: welcome + quick actions |
+| /guest/requests | GET | Guest's own request list |
+| /guest/requests/new | GET, POST | Submit new request |
+| /staff | GET | Staff dashboard (all requests) |
+| /staff/requests/{id} | GET | Request detail + timeline |
+| /staff/requests/{id}/status | POST | Update request status |
+| /logout | POST | Clear session |
+
+## Coding Patterns
+
+### Database Access (SQLModel)
+```python
+from sqlmodel import Session, select
+with Session(engine) as session:
+    statement = select(Guest).where(Guest.confirmation_code == code)
+    guest = session.exec(statement).first()
+```
+
+### Template Rendering
+```python
+from fastapi.templating import Jinja2Templates
+templates = Jinja2Templates(directory="templates")
+
+@router.get("/guest")
+async def guest_home(request: Request):
+    return templates.TemplateResponse("guest/home.html", {"request": request, "guest": guest})
+```
+
+### Form Handling (POST → Redirect)
+```python
+@router.post("/guest/requests")
+async def create_request(request: Request, category: str = Form(...), ...):
+    # create record
+    return RedirectResponse("/guest/requests", status_code=303)
+```
+
+### Auth Check Pattern
+```python
+guest_id = request.session.get("guest_id")
+if not guest_id:
+    return RedirectResponse("/login", status_code=303)
+```
+
+## Bootstrap 5 Classes
+- Status badges: `badge bg-secondary` (new), `badge bg-primary` (assigned), `badge bg-info` (in_progress), `badge bg-success` (completed)
+- Priority badges: `badge bg-secondary` (low), `badge bg-warning text-dark` (medium), `badge bg-danger` (high)
+- Cards: `card`, `card-body`, Bootstrap Icons for tiles
+- Forms: `form-control`, `form-select`, `form-label`, `btn btn-primary`
+- Tables: `table table-striped table-hover`
+- Layout: `container`, `row`, `col-md-6`, `col-lg-4`
+- Mobile: all layouts must work at 375px width
+
+## Custom CSS (style.css)
+- Navy (#1a2332) + gold (#b8921f) color palette
+- Bootstrap primary overridden to navy
+- Playfair Display for headings, Cormorant Garamond for body
+- Gold accent bar on card hover
+- Service tile styling with Bootstrap Icons
+
+## Template Structure
+```
+templates/
+├── base.html                  # Working — layout, navbar, Bootstrap/HTMX
+├── auth/
+│   ├── login.html             # Working — guest login form
+│   └── staff_login.html       # Working — staff login form
+├── guest/
+│   ├── home.html              # Stub — build during session
+│   ├── my_requests.html       # Stub — build during session
+│   └── submit_request.html    # Stub — build during session
+├── staff/
+│   ├── dashboard.html         # Stub — build during session
+│   └── request_detail.html    # Stub — build during session
+└── _partials/
+    ├── request_row.html       # Working — reusable request row
+    └── activity_item.html     # Working — timeline entry
+```
+
+## Seed Data
+3 guests pre-loaded via seed_data/seed.json:
+- Emily Parker (GM-2026-001, Platinum, room 12-501)
+- David Kim (GM-2026-002, Gold, room 8-302)
+- Lisa Chen (GM-2026-003, Silver, pre-arrival)
+Each has 1-2 existing service requests with activity history.
+
+## Commands (Makefile)
+- `make setup` — install deps + seed DB
+- `make dev` — uvicorn with hot reload on port 8000
+- `make seed` — re-seed database
+
+## Coding Guidelines
+- All POST handlers redirect with status_code=303
+- Every protected route checks session first
+- Templates extend base.html
+- Use Bootstrap 5 classes — custom CSS only in style.css for branding
+- Flash-style feedback via template variables (not Flask flash)
+- Use type hints throughout
+- All DB access via SQLModel session
+
+## Coding Standards
+- **Type Hints**: Use Python type hints for all function signatures. Prefer Pydantic models for input validation.
+- **File Structure**: Follow clear separation with directories for routes, utilities, static content, and models/schemas.
+- **RORO Pattern**: Use the "Receive an Object, Return an Object" pattern.
+- **Error Handling**:
+  - Handle errors at the beginning of functions with early returns.
+  - Use guard clauses and avoid deeply nested if statements.
+  - Implement proper logging and custom error types.

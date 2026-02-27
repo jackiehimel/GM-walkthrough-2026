@@ -1,0 +1,9 @@
+{# One activity item for RequestActivity. Used in staff/request_detail.html. Expects: a (RequestActivity). #}
+<li class="list-group-item d-flex justify-content-between align-items-start">
+    <div>
+        <strong>{{ a.action|replace('_', ' ')|title }}</strong>
+        {% if a.staff_name %}<br><span class="text-muted small">by {{ a.staff_name }}</span>{% endif %}
+        {% if a.note %}<br><span class="text-muted small">{{ a.note }}</span>{% endif %}
+    </div>
+    <span class="badge bg-secondary">{{ a.created_at.strftime('%b %d, %H:%M') }}</span>
+</li>
