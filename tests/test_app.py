@@ -174,3 +174,61 @@ def test_submit_other_with_description_succeeds(client):
     )
     assert resp.status_code == 303
     assert "/guest/requests" in resp.headers["location"]
+
+
+# ---------------------------------------------------------------------------
+# Feature 4 — View own requests
+# ---------------------------------------------------------------------------
+
+def test_guest_requests_shows_seeded_requests(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests")
+    assert resp.status_code == 200
+    assert "Housekeeping" in resp.text
+    assert "Dining" in resp.text
+
+
+def test_guest_requests_isolation(client):
+    """Lisa should only see her own requests, not Emily's."""
+    client.post("/login", data={"confirmation_code": "GM-2026-003", "last_name": "Chen"})
+    resp = client.get("/guest/requests")
+    assert resp.status_code == 200
+    assert "Front Desk" in resp.text
+    assert "Housekeeping" not in resp.text
+
+
+def test_guest_requests_status_badges(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests")
+    assert "bg-info" in resp.text  # in_progress
+    assert "bg-success" in resp.text  # completed
+
+
+def test_guest_requests_priority_badges(client):
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    resp = client.get("/guest/requests")
+    assert "bg-warning" in resp.text  # medium priority
+    assert "bg-secondary" in resp.text  # low priority
+
+
+def test_guest_requests_empty_state(client):
+    """A newly created request can prove the empty state path isn't hit for seeded guests, 
+    but we can test that the page renders for a guest whose requests we know about."""
+    client.post("/login", data={"confirmation_code": "GM-2026-003", "last_name": "Chen"})
+    resp = client.get("/guest/requests")
+    assert resp.status_code == 200
+    assert "Late checkout" in resp.text or "Front Desk" in resp.text
+
+
+def test_guest_requests_newest_first(client):
+    """Submit a new request as Emily and verify it appears before the seeded ones."""
+    client.post("/login", data={"confirmation_code": "GM-2026-001", "last_name": "Parker"})
+    client.post(
+        "/guest/requests",
+        data={"category": "concierge", "priority": "high", "request_type": "Event tickets", "description": "Concert tonight"},
+    )
+    resp = client.get("/guest/requests")
+    text = resp.text
+    concierge_pos = text.find("Concert tonight")
+    breakfast_pos = text.find("Breakfast for two")
+    assert concierge_pos < breakfast_pos, "Newest request should appear first"

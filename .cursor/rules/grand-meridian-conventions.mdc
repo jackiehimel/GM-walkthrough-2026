@@ -102,7 +102,7 @@ templates = Jinja2Templates(directory="templates")
 
 @router.get("/guest")
 async def guest_home(request: Request):
-    return templates.TemplateResponse("guest/home.html", {"request": request, "guest": guest})
+    return templates.TemplateResponse(request, "guest/home.html", context={"guest": guest})
 ```
 
 ### Form Handling (POST → Redirect)
